@@ -1,0 +1,315 @@
+INSERT INTO order_details (order_id, product_id, seri) VALUES 
+(1, 1, 'C39TL8YLGG24'), 
+(1, 1, 'C39TL8YLGG34'), 
+  
+-- Thêm iPhone 14 case với product_id = 49 và 23 
+(1, 49, NULL), -- Nếu case không có seri, để NULL 
+(1, 23, NULL), -- Nếu product_id = 23 không có seri, để NULL 
+ 
+(2, 2, 'SNIP14BLK0019'),  
+(2, 23, NULL),           
+(2, 25, NULL),           
+(2, 26, NULL),           
+  
+-- Order_id 3 
+(3, 5, 'NMLK32JI9876'),  
+(3, 22, NULL),          
+(3, 24, NULL),            
+-- Order_id 4 
+(4, 4, 'SNIP14BLK2038'),  
+(4, 21, NULL),        
+  
+-- Order_id 5 
+(5, 5, 'A1BA33BL1309'),  
+  
+-- Order_id 6 
+(6, 9, 'O9WX34NO7890'), -- Điện thoại 
+(6, 40, NULL),          -- Phụ kiện 
+(6, 41, NULL),          -- Phụ kiện 
+(6, 42, NULL),          -- Phụ kiện 
+  
+-- Order_id 7 
+(7, 7, 'C7GH21HI7890'), -- Điện thoại 
+(7, 43, NULL),          -- Phụ kiện 
+(7, 44, NULL),          -- Phụ kiện 
+  
+-- Order_id 8 
+(8, 18, 'S1IF84WL9980'), -- Điện thoại 
+(8, 25, NULL),          -- Phụ kiện 
+(8, 46, NULL),          -- Phụ kiện 
+(8, 47, NULL),          -- Phụ kiện 
+(8, 48, NULL),          -- Phụ kiện 
+  
+-- Order_id 9 
+(9, 9, 'S9EF34WX2345'), -- Điện thoại 
+  
+-- Order_id 10 
+(10, 15, 'O1MJ44SL5678'), -- Điện thoại aaa 
+(10, 21, NULL),           -- Phụ kiện 
+(10, 22, NULL),           -- Phụ kiện 
+  
+-- Order_id 11 
+(11, 13, 'D1KK12CD6667'), -- Điện thoại 
+  
+-- Order_id 12 
+(12, 11, 'E1WT64IN7910'), -- Điện thoại 
+(12, 23, NULL),           -- Phụ kiện 
+(12, 24, NULL),           -- Phụ kiện 
+  
+-- Order_id 13 
+(13, 14, 'O2OP90QR6789'), -- Điện thoại 
+  
+-- Order_id 14 
+(14, 31, '1O3P4Q5R6S7T'), -- Điện thoại 
+(14, 45, NULL),           -- Phụ kiện 
+  
+-- Order_id 15 
+(15, 19, 'K1PP64LM7762'), -- Điện thoại 
+(15, 26, NULL),           -- Phụ kiện 
+(15, 27, NULL),           -- Phụ kiện 
+  
+-- Order_id 16 
+(16, 29, '3M4N5O6P7Q8R'), -- Điện thoại 
+  
+-- Order_id 17 
+(17, 29, '4N5O6P7Q8R9S'), -- Điện thoại 
+(17, 40, NULL),           -- Phụ kiện 
+  
+-- Order_id 18 
+(18, 35, '12bcqrst5678'), -- Điện thoại 
+(18, 41, NULL),           -- Phụ kiện 
+  
+-- Order_id 19 
+(19, 19, 'S1HH44WX5554'), -- Điện thoại 
+(19, 42, NULL),           -- Phụ kiện 
+(19, 43, NULL),           -- Phụ kiện 
+  
+-- Order_id 20 
+(20, 20, '6J8K9L0M1N2O'), -- Điện thoại 
+(20, 44, NULL),           -- Phụ kiện 
+(20, 45, NULL),         -- Phụ kiện 
+(21, 1, 'C39TL8YLGG01'), -- Điện thoại 
+(21, 2, 'SNIP14BLK0001'), -- Điện thoại 
+(21, 3, 'SNIP14BLK1001'), -- Điện thoại 
+(21, 21, NULL),          -- Phụ kiện 
+(21, 22, NULL),          -- Phụ kiện 
+  
+-- Order_id 22 
+(22, 4, 'SNIP14BLK2001'), -- Điện thoại 
+(22, 5, 'KIE34FHS4501'), -- Điện thoại 
+(22, 6, 'B6QW28PL6739'), -- Điện thoại 
+(22, 23, NULL),          -- Phụ kiện 
+(22, 24, NULL),          -- Phụ kiện 
+  
+-- Order_id 23 
+(23, 7, 'A7CD45EF1298'), -- Điện thoại 
+(23, 8, 'A8UV56LM0987'), -- Điện thoại 
+(23, 9, 'V9JK56CD4567'), -- Điện thoại 
+  
+-- Order_id 24 
+(24, 10, 'B5EF87GH4567'), -- Điện thoại 
+(24, 11, 'I1SP84ML9430'), -- Điện thoại 
+(24, 12, 'I1SP84ML1999'), -- Điện thoại 
+(24, 25, NULL),           -- Phụ kiện 
+(24, 26, NULL),           -- Phụ kiện 
+  
+-- Order_id 25 
+(25, 13, 'T1UU56MN6666'), -- Điện thoại 
+(25, 14, 'F2FG12HI7890'), -- Điện thoại 
+(25, 15, 'N1NK34RL4567'), -- Điện thoại 
+(25, 27, NULL),           -- Phụ kiện 
+  
+-- Order_id 26 
+(26, 16, 'A1ZZ33GH1234'), -- Điện thoại 
+(26, 17, 'K1PP04ST1188'), -- Điện thoại 
+(26, 18, 'A1BA33BL1298'), -- Điện thoại 
+  
+-- Order_id 27 
+(27, 19, 'mpk0E1F2G3H4I5J'), -- Điện thoại 
+(27, 20, '5I7J8K9L0M1N'), -- Điện thoại 
+(27, 28, '2V2W3X4Y5Z6a'), -- Điện thoại 
+(27, 40, NULL),           -- Phụ kiện 
+(27, 41, NULL),           -- Phụ kiện 
+  
+-- Order_id 28 
+(28, 29, '1K2L3M4N5O6P'), -- Điện thoại 
+(28, 30, '0K2L3M4N5O6P'), -- Điện thoại 
+(28, 31, 'nm6C7D8E9F0G1H'), -- Điện thoại 
+(28, 42, NULL),           -- Phụ kiện 
+  
+-- Order_id 29 
+(29, 32, 'jk6A7B8C9D0E1F'), -- Điện thoại 
+(29, 33, '2V3W4X5Y6Z7A'), -- Điện thoại 
+(29, 34, '8C0D1E2F3G4H'), -- Điện thoại 
+(29, 43, NULL),           -- Phụ kiện 
+(29, 44, NULL),           -- Phụ kiện 
+  
+-- Order_id 30 
+(30, 35, '12bcuvwx3456'), -- Điện thoại 
+(30, 36, '4D5E8G9H0I1J'), -- Điện thoại 
+(30, 37, '1A2B3C4D5E9G'), -- Điện thoại 
+(30, 45, NULL),           -- Phụ kiện 
+  
+-- Order_id 31 
+(31, 38, '6Z7A8B9C0D1E'), -- Điện thoại 
+(31, 39, 'b5E6F7G8H9I'), -- Điện thoại 
+(31, 39, 'b3C4D5E6F7G'),  -- Điện thoại 
+  
+-- Order_id 32 
+(32, 2, 'SNIP14BLK0009'),  -- Điện thoại 
+(32, 2, 'SNIP14BLK0010'),  -- Điện thoại 
+(32, 2, 'SNIP14BLK0011'),  -- Điện thoại 
+(32, 46, NULL),           -- Phụ kiện 
+(32, 47, NULL),           -- Phụ kiện 
+  
+-- Order_id 33 
+(33, 5, 'VCXZ54NM1234'),  -- Điện thoại 
+(33, 5, 'KIMN54LO5678'),  -- Điện thoại 
+(33, 7, 'M7AB56CD4567'),  -- Điện thoại 
+  
+-- Order_id 34 
+(34, 8, 'C8YZ12QR8945'),  -- Điện thoại 
+(34, 10, 'U5QR56ST5678'),  -- Điện thoại 
+(34, 10, 'V5ST78UV1234'), -- Điện thoại 
+(34, 48, NULL),           -- Phụ kiện 
+(34, 49, NULL),           -- Phụ kiện 
+  
+-- Order_id 35 
+(35, 11, 'J1RO94NL0440'), 
+(35, 15, 'E1WS44IL5678'), 
+(35, 15, 'F1VT54JL6789'),
+(35, 14, 'Q2RS56TU4567'),
+(36, 5, 'ahn123456789'),  
+(36, 21, NULL), 
+(36, 22, NULL), 
+(37, 5, 'ahn234567890'), 
+(37, 60, NULL), 
+(37, 23, NULL), 
+(38, 5, 'ahn345678901'), 
+(38, 61, NULL), 
+(38, 62, NULL), 
+(39, 5, 'ahn456789012'), 
+(39, 25, NULL), 
+(39, 63, NULL), 
+(40, 5, 'ahn567890123'), 
+(40, 26, NULL), 
+(41, 5, 'dcu678901234'), 
+(41, 27, NULL), 
+(42, 5, 'dcu789012345'), 
+(42, 40, NULL), 
+(43, 5, 'dcu890123456'), 
+(43, 41, NULL), 
+(44, 5, 'dcu901234567'), 
+(44, 42, NULL), 
+(45, 5, 'dcu012345678'), 
+(45, 43, NULL), 
+(45, 71, NULL), 
+(46, 44, NULL), 
+(46, 45, NULL), 
+(47, 46, NULL), 
+(48, 47, NULL), 
+(48, 48, NULL), 
+(49, 49, NULL), 
+(50, 50, NULL), 
+(51, 51, NULL), 
+(52, 52, NULL), 
+(52, 53, NULL), 
+  
+(53, 54, NULL), 
+(54, 55, NULL), 
+(54, 56, NULL), 
+(55, 57, NULL),  
+(56, 4, 'anh123456789'), 
+(56, 21, NULL), 
+(56, 22, NULL), 
+(57, 4, 'anh234567890'), 
+(57, 23, NULL), 
+(58, 4, 'anh345678901'), 
+(58, 24, NULL), 
+(59, 4, 'anh456789012'), 
+(59, 25, NULL), 
+ (60, 4, 'anh567890123'), 
+(60, 26, NULL), 
+ (61, 4, 'anh678901234'), 
+(61, 27, NULL), 
+ (62, 4, 'anh789012345'), 
+(62, 40, NULL), 
+ (63, 4, 'anh890123456'), 
+(63, 41, NULL), 
+ (64, 4, 'anh901234567'), 
+(64, 42, NULL), 
+ (65, 4, 'anh012345678'), 
+(65, 43, NULL), 
+ (66, 4, 'duc123456789'), 
+(66, 44, NULL), 
+(66, 45, NULL), 
+ (67, 4, 'duc234567890'), 
+ 
+(67, 46, NULL), 
+ (68, 4, 'duc345678901'), 
+(68, 47, NULL), 
+(68, 48, NULL), 
+ (69, 4, 'duc456789012'), 
+(69, 49, NULL), 
+ (70, 4, 'duc567890123'), 
+(70, 50, NULL), 
+ (71, 4, 'duc678901234'), 
+(71, 51, NULL), 
+ (72, 4, 'duc789012345'), 
+(72, 52, NULL), 
+(72, 53, NULL), 
+ (73, 4, 'duc890123456'), 
+(73, 54, NULL), 
+ (74, 4, 'duc901234567'), 
+(74, 55, NULL), 
+(74, 56, NULL), 
+ (75, 4, 'duc012345678'), 
+(75, 57, NULL), 
+ (76, 4, 'anh135791113'), 
+(76, 58, NULL), 
+(76, 59, NULL), 
+ (77, 4, 'anh246802224'), 
+(77, 60, NULL), 
+ (78, 4, 'anh357913335'), 
+(78, 61, NULL), 
+(78, 62, NULL), 
+ (79, 4, 'anh468024446'), 
+(79, 63, NULL), 
+ (80, 4, 'duc579135557'), 
+(80, 64, NULL), 
+ (81, 4, 'duc680246668'), 
+(81, 65, NULL), 
+(81, 66, NULL), 
+ (82, 4, 'duc791357779'), 
+(82, 67, NULL), 
+ (83, 4, 'duc902468880'), 
+(83, 68, NULL), 
+ (84, 4, 'duc113579991'), 
+(84, 69, NULL), 
+(84, 70, NULL), 
+ (85, 4, 'duc224680112'), 
+(85, 71, NULL), 
+(86, 72, NULL), 
+(86, 73, NULL), 
+(87, 21, NULL), 
+(88, 22, NULL), 
+(88, 23, NULL), 
+(89, 24, NULL), 
+(90, 25, NULL), 
+(90, 26, NULL), 
+ (91, 27, NULL), 
+(92, 40, NULL), 
+(93, 41, NULL), 
+(93, 42, NULL), 
+(94, 43, NULL), 
+(95, 44, NULL), 
+(95, 45, NULL), 
+(96, 46, NULL), 
+(97, 47, NULL), 
+(98, 48, NULL), 
+(98, 49, NULL), 
+(99, 50, NULL), 
+(100, 51, NULL); 
+
+ 
+

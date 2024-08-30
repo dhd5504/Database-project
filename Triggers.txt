@@ -1,0 +1,207 @@
+CREATE OR REPLACE FUNCTION process_cart_to_order(khachhangid INT) 
+RETURNS VOID AS $$ 
+DECLARE  
+new_order_id INT; 
+cart_item RECORD; 
+BEGIN 
+INSERT INTO orders(customer_id, order_date, total_price, payment_status, delivery_status) 
+VALUES (khachhangid, CURRENT_DATE, 0, FALSE ,'dang xu ly') 
+RETURNING order_id INTO new_order_id; 
+ 
+FOR cart_item IN 
+        SELECT s.product_id, s.sh_product_quantity 
+        FROM shopping_cart s 
+        WHERE s.customer_id = khachhangid 
+ 
+    LOOP 
+       LOOP  
+   		INSERT INTO order_details(order_id, product_id, seri) 
+VALUES ( new_order_id, cart_item.product_id, NULL); 
+cart_item.sh_product_quantity := cart_item.sh_product_quantity-1; 
+EXIT WHEN cart_item.sh_product_quantity <1; 
+END LOOP; 
+    END LOOP; 
+ 
+DELETE FROM Shopping_cart  
+WHERE customer_id=khachhangid; 
+END; 
+$$ 
+LANGUAGE plpgsql; 
+ --------------------------------------------------
+
+
+CREATE OR REPLACE FUNCTION check_cart_limit() 
+RETURNS TRIGGER AS  $$ 
+DECLARE 
+    max_items INT := 20; -- Giới hạn số lượng bản ghi trong giỏ hàng 
+    current_count INT; 
+BEGIN 
+    -- Đếm số lượng bản ghi hiện tại trong giỏ hàng của khách hàng 
+    SELECT COUNT(*) 
+    INTO current_count 
+    FROM Shopping_cart  
+    WHERE customer_id = NEW.customer_id; 
+ 
+    -- Kiểm tra nếu số lượng bản ghi vượt quá giới hạn 
+    IF current_count >= max_items THEN 
+        RAISE EXCEPTION 'Khách hàng này đã đạt giới hạn % sản phẩm trong giỏ hàng', max_items; 
+    END IF; 
+ 
+    RETURN NEW; 
+END; $$ 
+ LANGUAGE plpgsql; 
+CREATE TRIGGER before_insert_giohang 
+BEFORE INSERT ON Shopping_cart 
+FOR EACH ROW 
+EXECUTE FUNCTION check_cart_limit(); 
+ ------------------------------------------------------
+
+
+ 
+CREATE OR REPLACE FUNCTION update_membership_level() 
+RETURNS TRIGGER AS $$ 
+BEGIN 
+    IF NEW.total_order < 15000000 THEN 
+        NEW.membership_level := 'S_new'; 
+    ELSIF NEW.total_order >= 15000000 AND NEW.total_order < 50000000 THEN 
+        NEW.membership_level := 'S_mem'; 
+    ELSE 
+        NEW.membership_level := 'S_vip'; 
+    END IF; 
+    RETURN NEW; 
+END; 
+$$ LANGUAGE plpgsql; 
+CREATE TRIGGER update_membership_level_trigger 
+BEFORE INSERT OR UPDATE ON customers 
+FOR EACH ROW 
+EXECUTE FUNCTION update_membership_level(); 
+ ------------------------------------------------------------------
+
+ 
+CREATE OR REPLACE FUNCTION update_total_order() 
+RETURNS TRIGGER AS $$ 
+BEGIN 
+    -- Xử lý trường hợp UPDATE
+    IF TG_OP = 'UPDATE' THEN
+        -- Nếu payment_status mới là TRUE và payment_status cũ cũng là TRUE
+        IF NEW.payment_status = TRUE AND OLD.payment_status = TRUE THEN
+            UPDATE customers
+            SET total_order = total_order - OLD.total_price + NEW.total_price
+            WHERE customer_id = NEW.customer_id;
+        -- Nếu payment_status mới là TRUE nhưng payment_status cũ là FALSE
+        ELSIF NEW.payment_status = TRUE AND OLD.payment_status = FALSE THEN
+            UPDATE customers
+            SET total_order = total_order + NEW.total_price
+            WHERE customer_id = NEW.customer_id;
+        -- Nếu payment_status mới là FALSE nhưng payment_status cũ là TRUE
+        ELSIF NEW.payment_status = FALSE AND OLD.payment_status = TRUE THEN
+            UPDATE customers
+            SET total_order = total_order - OLD.total_price
+            WHERE customer_id = NEW.customer_id;
+        END IF;
+    -- Xử lý trường hợp INSERT
+    ELSIF TG_OP = 'INSERT' AND NEW.payment_status = TRUE THEN
+        UPDATE customers 
+        SET total_order = total_order + NEW.total_price 
+        WHERE customer_id = NEW.customer_id;
+    END IF;
+    RETURN NEW; 
+END; 
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_total_order_trigger 
+AFTER INSERT OR UPDATE ON orders 
+FOR EACH ROW 
+EXECUTE FUNCTION update_total_order(); 
+ ---------------------------------------------------------------------
+
+
+
+
+CREATE OR REPLACE FUNCTION update_order_total_price()   
+RETURNS TRIGGER AS  $$ 
+BEGIN  
+    UPDATE orders  
+    SET total_price = (  
+        SELECT COALESCE(SUM(p.price), 0)  
+        FROM order_details od  
+        JOIN products p ON od.product_id = p.product_id  
+        WHERE od.order_id = NEW.order_id  
+    )  
+    WHERE order_id = NEW.order_id;  
+    RETURN NEW;  
+END;  
+$$ LANGUAGE plpgsql;  
+ 
+CREATE TRIGGER update_order_total_price_trigger  
+AFTER INSERT OR UPDATE OR DELETE ON order_details  
+FOR EACH ROW  
+EXECUTE FUNCTION update_order_total_price(); 
+------------------------------------------------------------------
+
+ 
+ 
+CREATE OR REPLACE FUNCTION update_product_quantity() 
+RETURNS TRIGGER AS $$ 
+BEGIN 
+    -- Giảm số lượng sản phẩm khi thêm vào order_details 
+        UPDATE products 
+        SET quantity_prod = quantity_prod - 1 
+        WHERE product_id = NEW.product_id; 
+    RETURN NEW; 
+END; 
+$$ LANGUAGE plpgsql; 
+CREATE TRIGGER update_product_quantity_trigger 
+AFTER INSERT OR DELETE ON order_details 
+FOR EACH ROW 
+EXECUTE FUNCTION update_product_quantity(); 
+-------------------------------------------------------
+
+
+ 
+CREATE OR REPLACE FUNCTION delete_order(delete_order_id INT) 
+RETURNS VOID AS $$ 
+DECLARE
+    order_customer_id INT;
+    order_total_price NUMERIC;
+BEGIN 
+    -- Lấy thông tin về khách hàng và tổng giá trị đơn hàng
+    SELECT customer_id, total_price INTO order_customer_id, order_total_price
+    FROM orders 
+    WHERE order_id = delete_order_id;
+    
+    -- Trừ giá trị đơn hàng từ total_order của khách hàng nếu payment_status là TRUE
+    IF EXISTS (SELECT 1 FROM orders WHERE order_id = delete_order_id AND payment_status = TRUE) THEN
+        UPDATE customers
+        SET total_order = total_order - order_total_price
+        WHERE customer_id = order_customer_id;
+    END IF;
+
+    -- Xóa các chi tiết đơn hàng
+    DELETE FROM order_details 
+    WHERE order_id = delete_order_id; 
+ 
+    -- Xóa đơn hàng
+    DELETE FROM orders 
+    WHERE order_id = delete_order_id; 
+END; 
+$$ LANGUAGE plpgsql;
+
+
+
+-----------------------------------------------------------------
+CREATE OR REPLACE FUNCTION restore_product_quantity() 
+RETURNS TRIGGER AS $$ 
+BEGIN 
+    -- Cập nhật lại số lượng sản phẩm trong kho 
+    UPDATE products 
+    SET quantity_prod = quantity_prod + 1 
+    WHERE product_id = OLD.product_id; 
+ 
+    RETURN OLD; 
+END; 
+$$ LANGUAGE plpgsql; 
+CREATE TRIGGER restore_product_quantity_trigger 
+AFTER DELETE ON order_details 
+FOR EACH ROW 
+EXECUTE FUNCTION restore_product_quantity(); 

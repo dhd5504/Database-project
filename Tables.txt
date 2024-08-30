@@ -1,0 +1,123 @@
+CREATE TYPE loaisp AS ENUM ('dien thoai', 'phu kien'); 
+
+CREATE TABLE products ( 
+
+product_id SERIAL PRIMARY KEY, 
+
+product_name VARCHAR(50) NOT NULL , 
+
+type_product loaisp NOT NULL, 
+
+brand VARCHAR(20) NOT NULL, 
+
+color VARCHAR(20) NOT NULL, 
+
+price NUMERIC(9) NOT NULL CHECK (price > 0), 
+
+quantity_prod NUMERIC(5) NOT NULL CHECK (quantity_prod >= 0), 
+
+time_warrant_prod NUMERIC(3) NOT NULL CHECK (time_warrant_prod >= 0) 
+
+); 
+
+ 
+
+CREATE TABLE phone_detail_products ( 
+
+    detail_prod_id SERIAL PRIMARY KEY, 
+
+    product_id INT NOT NULL, 
+
+    seri VARCHAR(50) UNIQUE NOT NULL, 
+
+    FOREIGN KEY (product_id) REFERENCES products(product_id) 
+
+); 
+
+ 
+
+CREATE TABLE customers ( 
+
+    customer_id SERIAL PRIMARY KEY, 
+
+    customer_name VARCHAR(50) NOT NULL, 
+
+    phone_number VARCHAR(15) UNIQUE NOT NULL, 
+
+    password VARCHAR(30) NOT NULL, 
+
+    date_of_birth DATE NOT NULL, 
+
+    customer_address TEXT NOT NULL, 
+
+    email VARCHAR(60) UNIQUE NOT NULL, 
+
+    total_order INT DEFAULT 0 CHECK (total_order >= 0), 
+
+    membership_level VARCHAR(50) 
+
+); 
+
+CREATE TYPE giaohang AS ENUM('dang xu ly', 'da gui', 'Dang van chuyen', 'da giao', 'da huy', 'da tra lai');  
+
+create table orders(  
+
+    order_id SERIAL primary key,  
+
+customer_id int references customers(customer_id) ,  
+
+order_date date NOT NULL,  
+
+payment_status bool NOT NULL,  
+
+delivery_status giaohang NOT NULL,  
+
+Total_price INT DEFAULT 0 CHECK (Total_price >= 0) 
+
+) ; 
+
+create table order_details(  
+
+    orderdetail_id  SERIAL primary key,  
+
+order_id int  REFERENCES orders(order_id),  
+
+product_id int REFERENCES products(product_id),  
+
+seri VARCHAR(20) UNIQUE 
+
+) ; 
+
+CREATE TYPE tinh_trang_enum AS ENUM ('chưa sửa', 'đang sửa', 'đã sửa'); 
+
+CREATE TABLE warrant_products( 
+
+warrant_products_id SERIAL PRIMARY KEY, 
+
+customer_id INT REFERENCES customers (customer_id), 
+
+product_id INT REFERENCES products (product_id), 
+
+date_nhan DATE NOT NULL, 
+
+date_tra DATE , 
+
+TinhTrang tinh_trang_enum NOT NULL, 
+
+CONSTRAINT chk_date_tra CHECK (date_tra IS NULL OR date_tra >= date_nhan) 
+
+); 
+
+ 
+
+CREATE TABLE Shopping_cart( 
+
+Sh_cart_id SERIAL PRIMARY KEY, 
+
+customer_id INT NOT NULL references customers (customer_id), 
+
+product_id INT NOT NULL references products (product_id), 
+
+SH_product_quantity INT NOT NULL CHECK (SH_product_quantity > 0) 
+
+); 
