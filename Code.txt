@@ -1,0 +1,658 @@
+CREATE TYPE loaisp AS ENUM ('dien thoai', 'phu kien');
+CREATE TABLE products (
+	product_id SERIAL PRIMARY KEY,
+	product_name VARCHAR(50) NOT NULL ,
+	type_product loaisp NOT NULL,
+	brand VARCHAR(20) NOT NULL,
+	color VARCHAR(20) NOT NULL,
+	price NUMERIC(9) NOT NULL CHECK (price > 0),
+	quantity_prod NUMERIC(5) NOT NULL CHECK (quantity_prod >= 0),
+	time_warrant_prod NUMERIC(3) NOT NULL CHECK (time_warrant_prod >= 0)
+);
+
+CREATE TABLE phone_detail_products (
+    detail_prod_id SERIAL PRIMARY KEY,
+    product_id INT NOT NULL,
+    seri VARCHAR(50) UNIQUE NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    customer_name VARCHAR(50) NOT NULL,
+    phone_number VARCHAR(15) UNIQUE NOT NULL,
+    password VARCHAR(30) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    customer_address TEXT NOT NULL,
+    email VARCHAR(60) UNIQUE NOT NULL,
+    total_order INT DEFAULT 0 CHECK (total_order >= 0),
+    membership_level VARCHAR(50)
+);
+CREATE TYPE giaohang AS ENUM('dang xu ly', 'da gui', 'Dang van chuyen', 'da giao', 'da huy', 'da tra lai'); 
+create table orders( 
+    order_id SERIAL primary key, 
+	customer_id int references customers(customer_id) , 
+	order_date date NOT NULL DEFAULT CURRENT_DATE, 
+	payment_status bool NOT NULL DEFAULT FALSE, 
+	delivery_status giaohang NOT NULL, 
+	Total_price INT DEFAULT 0 CHECK (Total_price >= 0)
+) ;
+create table order_details( 
+    orderdetail_id  SERIAL primary key, 
+	order_id int  REFERENCES orders(order_id), 
+	product_id int REFERENCES products(product_id), 
+	seri VARCHAR(20) UNIQUE
+) ;
+CREATE TYPE tinh_trang_enum AS ENUM ('chưa sửa', 'đang sửa', 'đã sửa');
+CREATE TABLE warrant_products(
+	warrant_products_id SERIAL PRIMARY KEY,
+	customer_id INT REFERENCES customers (customer_id),
+	product_id INT REFERENCES products (product_id),
+	seri VARCHAR(20)
+	date_nhan DATE NOT NULL,
+	date_tra DATE ,
+	TinhTrang tinh_trang_enum NOT NULL,
+CONSTRAINT chk_date_tra CHECK (date_tra IS NULL OR date_tra >= date_nhan)
+);
+
+CREATE TABLE Shopping_cart(
+	Sh_cart_id SERIAL PRIMARY KEY,
+	customer_id INT NOT NULL references customers (customer_id),
+	product_id INT NOT NULL references products (product_id),
+	SH_product_quantity INT NOT NULL CHECK (SH_product_quantity > 0)
+);
+
+CREATE OR REPLACE FUNCTION process_cart_to_order(khachhangid INT)
+RETURNS VOID AS $$
+DECLARE 
+	new_order_id INT;
+	cart_item RECORD;
+BEGIN
+	INSERT INTO orders(customer_id, order_date, total_price, payment_status, delivery_status)
+	VALUES (khachhangid, CURRENT_DATE, 0, FALSE ,'dang xu ly')
+	RETURNING order_id INTO new_order_id;
+	
+	FOR cart_item IN
+        SELECT s.product_id, s.sh_product_quantity
+        FROM shopping_cart s
+        WHERE s.customer_id = khachhangid
+
+    LOOP
+       LOOP 
+	   		INSERT INTO order_details(order_id, product_id, seri)
+			VALUES ( new_order_id, cart_item.product_id, NULL);
+			cart_item.sh_product_quantity := cart_item.sh_product_quantity-1;
+			EXIT WHEN cart_item.sh_product_quantity <1;
+		END LOOP;
+    END LOOP;
+	
+	DELETE FROM Shopping_cart 
+	WHERE customer_id=khachhangid;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_cart_limit()
+RETURNS TRIGGER AS  $$
+DECLARE
+    max_items INT := 20; -- Giới hạn số lượng bản ghi trong giỏ hàng
+    current_count INT;
+BEGIN
+    -- Đếm số lượng bản ghi hiện tại trong giỏ hàng của khách hàng
+    SELECT COUNT(*)
+    INTO current_count
+    FROM Shopping_cart 
+    WHERE customer_id = NEW.customer_id;
+
+    -- Kiểm tra nếu số lượng bản ghi vượt quá giới hạn
+    IF current_count >= max_items THEN
+        RAISE EXCEPTION 'Khách hàng này đã đạt giới hạn % sản phẩm trong giỏ hàng', max_items;
+    END IF;
+
+    RETURN NEW;
+END; $$
+ LANGUAGE plpgsql;
+CREATE TRIGGER before_insert_giohang
+BEFORE INSERT ON Shopping_cart
+FOR EACH ROW
+EXECUTE FUNCTION check_cart_limit();
+
+
+CREATE OR REPLACE FUNCTION update_membership_level()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.total_order < 15000000 THEN
+        NEW.membership_level := 'S_new';
+    ELSIF NEW.total_order >= 15000000 AND NEW.total_order < 50000000 THEN
+        NEW.membership_level := 'S_mem';
+    ELSE
+        NEW.membership_level := 'S_vip';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER update_membership_level_trigger
+BEFORE INSERT OR UPDATE ON customers
+FOR EACH ROW
+EXECUTE FUNCTION update_membership_level();
+
+
+CREATE OR REPLACE FUNCTION update_total_order()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'UPDATE' AND NEW.payment_status = TRUE AND OLD.payment_status = FALSE) 
+THEN
+        UPDATE customers
+        SET total_order = total_order + NEW.total_price
+        WHERE customer_id = NEW.customer_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER update_total_order_trigger
+AFTER INSERT OR UPDATE ON orders
+FOR EACH ROW
+EXECUTE FUNCTION update_total_order();
+
+-- Hàm để cập nhật cả tổng giá đơn hàng và số lượng sản phẩm
+CREATE OR REPLACE FUNCTION update_order_and_product()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Cập nhật tổng giá của đơn hàng
+    UPDATE orders
+    SET total_price = (
+        SELECT COALESCE(SUM(p.price), 0)
+        FROM order_details od
+        JOIN products p ON od.product_id = p.product_id
+        WHERE od.order_id = NEW.order_id
+    )
+    WHERE order_id = NEW.order_id;
+
+    -- Giảm số lượng sản phẩm khi thêm vào order_details
+    UPDATE products
+    SET quantity_prod = quantity_prod - 1
+    WHERE product_id = NEW.product_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger để gọi hàm update_order_and_product
+CREATE TRIGGER update_order_and_product_trigger
+AFTER INSERT ON order_details
+FOR EACH ROW
+EXECUTE FUNCTION update_order_and_product();
+
+
+CREATE OR REPLACE FUNCTION delete_order(delete_order_id INT) 
+RETURNS VOID AS $$ 
+DECLARE
+    order_customer_id INT;
+    order_total_price NUMERIC;
+BEGIN 
+    -- Lấy thông tin về khách hàng và tổng giá trị đơn hàng
+    SELECT customer_id, total_price INTO order_customer_id, order_total_price
+    FROM orders 
+    WHERE order_id = delete_order_id;
+    
+    -- Trừ giá trị đơn hàng từ total_order của khách hàng nếu payment_status là TRUE
+    IF EXISTS (SELECT 1 FROM orders WHERE order_id = delete_order_id AND payment_status = TRUE) THEN
+        UPDATE customers
+        SET total_order = total_order - order_total_price
+        WHERE customer_id = order_customer_id;
+    END IF;
+
+    -- Xóa các chi tiết đơn hàng
+    DELETE FROM order_details 
+    WHERE order_id = delete_order_id; 
+ 
+    -- Xóa đơn hàng
+    DELETE FROM orders 
+    WHERE order_id = delete_order_id; 
+END; 
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION restore_product_quantity()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Cập nhật lại số lượng sản phẩm trong kho
+    UPDATE products
+    SET quantity_prod = quantity_prod + 1
+    WHERE product_id = OLD.product_id;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER restore_product_quantity_trigger
+AFTER DELETE ON order_details
+FOR EACH ROW
+EXECUTE FUNCTION restore_product_quantity();
+
+
+
+
+CREATE OR REPLACE FUNCTION check_product_quantity()
+RETURNS TRIGGER AS $$
+DECLARE
+    available_quantity INT;
+BEGIN
+    SELECT quantity_prod 
+    INTO available_quantity
+    FROM products 
+    WHERE product_id = NEW.product_id;
+    IF NEW.sh_product_quantity > available_quantity THEN
+        RAISE EXCEPTION 'Số lượng sản phẩm % không đủ trong kho. Chỉ còn % sản phẩm.', NEW.product_id, available_quantity;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_stock_quantity_before_insert
+BEFORE INSERT OR UPDATE ON Shopping_cart
+FOR EACH ROW
+EXECUTE FUNCTION check_product_quantity();
+CREATE OR REPLACE FUNCTION before_remove_order(khachhangid1 INT)
+RETURNS VOID AS $$
+DECLARE 
+	carsh_customer RECORD;
+	check_carsh BOOL :=TRUE;
+BEGIN
+	FOR carsh_customer IN 
+	SELECT s.product_id, s.sh_product_quantity, p.quantity_prod
+	FROM shopping_cart s
+	INNER JOIN products p ON s.product_id=p.product_id
+	WHERE s.customer_id=khachhangid1
+	LOOP
+	IF carsh_customer.sh_product_quantity >carsh_customer.quantity_prod THEN
+	RAISE EXCEPTION 'Số lượng sản phẩm % không đủ trong kho. Chỉ còn % sản phẩm.',carsh_customer.product_id,carsh_customer.quantity_prod ;
+	check_carsh :=FALSE;
+	END IF;
+	END LOOP;
+	IF check_carsh=TRUE THEN PERFORM process_cart_to_order(khachhangid1);
+	END IF;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_seri_exists()
+RETURNS TRIGGER AS $$
+DECLARE
+    serial_exists BOOLEAN;
+BEGIN
+    -- Check if the serial number exists in phone_detail_products
+    SELECT EXISTS (
+        SELECT 1
+        FROM phone_detail_products
+        WHERE seri = NEW.seri
+    ) INTO serial_exists;
+    -- Raise an exception if the serial number does not exist
+    IF NOT serial_exists THEN
+        RAISE EXCEPTION 'Serial number % does not exist in phone_detail_products.', NEW.seri;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_insert_order_details
+BEFORE UPDATE ON order_details
+FOR EACH ROW
+EXECUTE FUNCTION check_seri_exists();
+
+
+CREATE OR REPLACE FUNCTION add_or_update_cart()
+RETURNS TRIGGER AS $$
+BEGIN
+    
+    IF EXISTS (
+        SELECT 1 
+        FROM Shopping_cart 
+        WHERE customer_id = NEW.customer_id 
+          AND product_id = NEW.product_id
+    ) THEN
+        -- If it exists, update the quantity
+        UPDATE Shopping_cart
+        SET SH_product_quantity = SH_product_quantity + NEW.SH_product_quantity
+        WHERE customer_id = NEW.customer_id 
+          AND product_id = NEW.product_id;
+        -- Prevent the new row from being inserted
+        RETURN NULL;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER add_or_update_cart_trigger
+BEFORE INSERT ON Shopping_cart
+FOR EACH ROW
+EXECUTE FUNCTION add_or_update_cart();
+
+
+CREATE OR REPLACE FUNCTION apply_discount()
+RETURNS TRIGGER AS $$
+DECLARE
+    discount_rate NUMERIC := 0;
+BEGIN
+    IF TG_OP = 'UPDATE' AND NEW.payment_status IS DISTINCT FROM OLD.payment_status THEN
+        RETURN NEW;
+    END IF;
+        IF (SELECT membership_level FROM customers WHERE customer_id = NEW.customer_id) = 'S_vip' THEN
+        discount_rate := 0.03;
+    ELSIF (SELECT membership_level FROM customers WHERE customer_id = NEW.customer_id) = 'S_mem' THEN
+        discount_rate := 0.01;
+    END IF;
+    NEW.total_price := NEW.total_price * (1 - discount_rate);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER apply_discount_trigger
+BEFORE INSERT OR UPDATE ON orders
+FOR EACH ROW
+EXECUTE FUNCTION apply_discount();
+
+CREATE OR REPLACE FUNCTION add_customer(
+    p_customer_name VARCHAR(50),
+    p_phone_number VARCHAR(15),
+    p_password VARCHAR(30),
+    p_date_of_birth DATE,
+    p_customer_address TEXT,
+    p_email VARCHAR(60)
+)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO customers (
+        customer_name, 
+        phone_number, 
+        password, 
+        date_of_birth, 
+        customer_address, 
+        email
+    ) VALUES (
+        p_customer_name, 
+        p_phone_number, 
+        p_password, 
+        p_date_of_birth, 
+        p_customer_address, 
+        p_email
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION create _order(
+    p_phone_number VARCHAR(15)
+    
+)
+RETURNS VOID AS $$
+DECLARE
+    v_customer_id INT;
+BEGIN
+    -- Lấy customer_id dựa trên số điện thoại
+    SELECT customer_id INTO v_customer_id
+    FROM customers
+    WHERE phone_number = p_phone_number;
+
+    -- Kiểm tra xem khách hàng có tồn tại không
+    IF v_customer_id IS NULL THEN
+        RAISE EXCEPTION 'Khach hang voi so dien thoai % khong ton tai', p_phone_number;
+    END IF;
+
+    -- Tạo đơn hàng mới cho khách hàng
+    INSERT INTO orders (
+        customer_id,
+        order_date,
+        total_price,
+        payment_status,
+        delivery_status
+    ) VALUES (
+        v_customer_id,
+        CURRENT_DATE,
+        0,
+        FALSE,
+        'dang xu ly'
+    );
+END;
+$$ LANGUAGE plpgsql;
+--1. Viết câu truy vấn/hàm in ra thông tin của tiện thoại/phụ kiện thông qua tên  
+SELECT * 
+FROM products 
+WHERE product_name = 'Tên sản phẩm'; 
+
+--2. Viết câu truy vấn in ra danh sách của các loại điện thoại theo giá tiền giảm dần 
+SELECT * 
+FROM products 
+WHERE type_product = 'dien thoai' 
+ORDER BY price DESC; 
+
+--3. Viết câu truy vấn in ra danh sách của các loại phụ kiện theo giá tiền giảm dần 
+SELECT *  
+FROM products  
+WHERE type_product = 'phu kien' -- hoặc giá trị tương ứng với loại phụ kiện trong bảng của bạn 
+ORDER BY price DESC; 
+
+
+-- 4. Viết câu truy vấn in ra lịch sử mua hàng của 1 khách hàng 
+SELECT o.order_id, o.orderdate, o.total_price 
+FROM orders o 
+INNER JOIN customers c ON o.customer_id=c.customer_id 
+WHERE c.phone_number=  ; 
+
+
+--5. Viết câu truy vấn/hàm in thời điểm mua của 1 chiếc điện thoại thông qua số seri 
+SELECT  
+    o.order_date AS "Thời Điểm Mua" 
+FROM  
+    order_details od 
+JOIN  
+    orders o ON od.order_id = o.order_id 
+JOIN  
+    phone_detail_products pdp ON od.product_id = pdp.product_id 
+WHERE  
+    pdp.seri = '{seri}'; 
+
+--6. Viết câu truy vấn in ra những phụ kiện hoặc điện thoại vẫn đang sửa 
+SELECT  
+    wp.warrant_products_id AS "Mã Sản Phẩm Bảo Hành", 
+    p.product_id AS "Mã Sản Phẩm", 
+    p.product_name AS "Tên Sản Phẩm", 
+    p.type_product AS "Loại Sản Phẩm", 
+    wp.date_nhan AS "Ngày Nhận", 
+    wp.tinhtrang AS "Tình Trạng" 
+FROM  
+    warrant_products wp 
+JOIN  
+    products p ON wp.product_id = p.product_id 
+WHERE  
+    wp.tinhtrang = 'đang sửa'; 
+
+--7.Viết câu truy vấn tính tổng doanh thu theo tháng 
+SELECT  
+    DATE_TRUNC('month', order_date) AS month, 
+    SUM(total_price) AS total_revenue 
+FROM  
+    orders 
+WHERE 
+    payment_status = TRUE  -- Chỉ tính các đơn hàng đã thanh toán 
+GROUP BY  
+    month 
+ORDER BY  
+    month; 
+
+--8.Viết câu truy vấn in ra danh sách seri điện thoại chưa bán (còn trong kho) 
+SELECT  
+    pdp.seri AS "Số Seri" 
+FROM  
+    phone_detail_products pdp 
+LEFT JOIN  
+    order_details od ON pdp.product_id = od.product_id AND pdp.seri = od.seri 
+WHERE  
+    od.seri IS NULL; 
+--9. Truy vấn đánh giá doanh thu từ các khách hàng VIP so với các khách hàng thông thường:
+SELECT  
+    c.membership_level,  
+    SUM(o.total_price) AS total_revenue 
+FROM     customers c JOIN  orders o ON c.customer_id = o.customer_id 
+WHERE  
+    o.payment_status = 'TRUE' 
+GROUP BY  
+    c.membership_level; 
+--10. Truy vấn chi tiết đơn hàng cho một order_id cụ thể:
+SELECT  
+    od.orderdetail_id,  
+    od.order_id,  
+    p.product_id,  
+    p.product_name,  
+    p.brand, 
+    p.color, 
+    p.price, 
+    od.seri 
+FROM   order_details od 
+JOIN  products p ON od.product_id = p.product_id 
+WHERE  
+    od.order_id = [order_id]; 
+
+--11 . Truy vấn danh sách các sản phẩm có số lượng trong kho nhỏ hơn 30 
+SELECT  
+    p.product_id,  
+    p.product_name,  
+    p.type_product,  
+    p.brand,  
+    p.color,  
+    p.price,  
+    p.quantity_prod 
+FROM    products p 
+WHERE  
+    p.quantity_prod < 30; 
+
+--12 . Truy vấn danh sách các khách hàng có tổng số tiền đã chi tiêu cao nhất 
+SELECT 
+    customer_id, 
+    customer_name, 
+    phone_number, 
+    email, 
+    total_order 
+FROM    customers 
+ORDER BY 
+    total_order DESC 
+LIMIT 10; 
+
+--13 . Truy vấn danh sách các đơn hàng của một khách hàng dựa trên customer_id: 
+SELECT 
+    o.order_id, 
+    o.order_date, 
+    o.total_price, 
+    o.payment_status, 
+    o.delivery_status, 
+    od.product_id, 
+    p.product_name, 
+    od.seri 
+FROM   orders o 
+JOIN 
+    order_details od ON o.order_id = od.order_id 
+JOIN   products p ON od.product_id = p.product_id 
+WHERE 
+    o.customer_id = 'YOUR_CUSTOMER_ID'; 
+--14. Truy vấn thông tin khách hàng có số đơn hàng đã đặt lớn hơn 2 
+SELECT 
+    c.customer_id, 
+    c.customer_name, 
+    c.phone_number, 
+    c.date_of_birth, 
+    c.customer_address, 
+    c.email, 
+    c.total_order, 
+    c.membership_level, 
+    COUNT(o.order_id) AS order_count 
+FROM   customers c 
+JOIN   orders o ON c.customer_id = o.customer_id 
+GROUP BY 
+    c.customer_id, c.customer_name, c.phone_number, c.date_of_birth, c.customer_address, c.email, c.total_order, c.membership_level 
+HAVING 
+    COUNT(o.order_id) > 1; 
+--15. Truy vấn sản phẩm nào được bảo hành nhiều nhất 
+SELECT 
+    p.product_id, 
+    p.product_name, 
+    COUNT(wp.product_id) AS warrant_count 
+FROM     products p 
+JOIN     warrant_products wp ON p.product_id = wp.product_id 
+GROUP BY 
+    p.product_id, p.product_name 
+ORDER BY 
+    warrant_count DESC 
+LIMIT 1; 
+--16 . Truy vấn danh sách sản phẩm trong giỏ hàng của một khách hàng cụ thể theo customer_id 
+SELECT 
+    sc.Sh_cart_id, 
+    sc.customer_id, 
+    sc.product_id, 
+    p.product_name, 
+    p.brand, 
+    p.price, 
+    sc.Sh_product_quantity 
+FROM     Shopping_cart sc 
+JOIN    products p ON sc.product_id = p.product_id 
+WHERE 
+    sc.customer_id =30; 
+--17. Truy vấn danh sách các đơn hàng trong khoảng thời gian nhất định 
+SELECT 
+    order_id, 
+    customer_id, 
+    order_date, 
+    total_price, 
+    payment_status, 
+    delivery_status 
+FROM 
+    orders 
+WHERE 
+    order_date BETWEEN '[start_date]' AND '[end_date]'; 
+--     order_date BETWEEN '1-1-2024' AND '1-8-2024'; 
+--18 . Truy vấn danh sách các khách hàng sinh nhật trong tháng hiện tại 
+SELECT 
+    customer_id, 
+    customer_name, 
+    phone_number, 
+    date_of_birth, 
+    customer_address, 
+    email, 
+    total_order, 
+    membership_level 
+FROM 
+    customers 
+WHERE 
+    EXTRACT(MONTH FROM date_of_birth) = EXTRACT(MONTH FROM CURRENT_DATE); 
+--19 . Để truy vấn các sản phẩm được bán nhiều nhất trong tháng hiện tại 
+SELECT 
+    p.product_id, 
+    p.product_name, 
+    COUNT(od.product_id) AS total_quantity_sold 
+FROM 
+    order_details od 
+JOIN 
+    orders o ON od.order_id = o.order_id 
+JOIN 
+    products p ON od.product_id = p.product_id 
+WHERE 
+    EXTRACT(YEAR FROM o.order_date) = EXTRACT(YEAR FROM CURRENT_DATE) 
+    AND EXTRACT(MONTH FROM o.order_date) = EXTRACT(MONTH FROM CURRENT_DATE) 
+    AND o.payment_status = 'Paid' 
+GROUP BY 
+    p.product_id, p.product_name 
+ORDER BY 
+    total_quantity_sold DESC; 
+--20 . Truy vấn danh sách các sản phẩm đang trong quá trình bảo hành dựa trên số điện thoại khách hàng 
+SELECT wp.warrant_products_id,wp.customer_id, c.customer_name, 
+    wp.product_id,p.product_name,   wp.seri, wp.date_nhan, wp.date_tra,wp.tinhtrang 
+FROM warrant_products wp  
+JOIN 
+    customers c ON wp.customer_id = c.customer_id 
+JOIN 
+    products p ON wp.product_id = p.product_id 
+WHERE 
+    c.phone_number = '0925432109'; 
+
+
