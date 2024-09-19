@@ -9,7 +9,7 @@ Các thành viên nhóm:
   Mạch Ngọc Đức Anh    20225595
   
   Đỗ Hoàng Đông        20225807 
-  
+Report: https://s.net.vn/Report
 Truy vấn dữ liệu:
 
     20 câu lệnh truy vấn [query.sql].
