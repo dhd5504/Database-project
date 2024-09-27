@@ -1,14 +1,16 @@
-Group Database Project - Group 4.
+      Group Database Project - Group 4.
 
-Topic: Smartphone Store
+      Topic: Smartphone Store
 
-Group members:
+  Group members:
 
-  Phạm Việt Anh        20225599  
+        Đỗ Hoàng Đông        20225807 
+
+        Phạm Việt Anh        20225599  
   
-  Mạch Ngọc Đức Anh    20225595
+        Mạch Ngọc Đức Anh    20225595
   
-  Đỗ Hoàng Đông        20225807 
+        
 
 Report: https://s.net.vn/Report
 
