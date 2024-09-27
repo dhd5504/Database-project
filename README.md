@@ -1,33 +1,35 @@
-Bài tập lớn cơ sở dữ liệu nhóm 4.
+Group Database Project - Group 4.
 
-Chủ đề: Smartphone store
+Topic: Smartphone Store
 
-Các thành viên nhóm:
+Group members:
 
   Phạm Việt Anh        20225599  
   
   Mạch Ngọc Đức Anh    20225595
   
   Đỗ Hoàng Đông        20225807 
+
 Report: https://s.net.vn/Report
-Truy vấn dữ liệu:
 
-    20 câu lệnh truy vấn [query.sql].
-    
-      Tối ưu thời gian truy vấn.
-      
-      Index.
-      
-      Partition.
-      
-Cập nhận dữ liệu:
+Data Queries:
 
-    Stored procedure Insert, Update, Delete.
-    
-    SQL script [SQL].
-    
-    Code python sinh tự động Stored procedure Insert, Update, Delete [SP_GENE.py].
-    
-Copy database y hệt cấu trúc.
+- 20 query commands [query.sql].
+  
+  - Query time optimization.
+  
+  - Indexing.
+  
+  - Partitioning.
 
-Stored procedure để copy database
+Data Updates:
+
+- Stored procedures for Insert, Update, Delete.
+  
+- SQL script [SQL].
+  
+- Python code for automatic generation of Stored procedures for Insert, Update, Delete [SP_GENE.py].
+
+Database copy with identical structure.
+
+Stored procedure to copy the database.
